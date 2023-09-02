@@ -36,20 +36,17 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
                         Log.i(TAG, message)
                         fileWriter.writeToFile(message)
 
-                        if (!Utils.isServiceRunning(
-                                EventMonitoringService::class.java,
-                                applicationContext
-                            )
-                        ) {
-                            val serviceIntent =
-                                Intent(applicationContext, EventMonitoringService::class.java)
+                        if (!Utils.isServiceRunning(EventMonitoringService::class.java, context)) {
+                            val serviceIntent = Intent(context, EventMonitoringService::class.java)
+
+                            Log.i(MainActivity.TAG, "Trying to Start EventMonitoringService as Regular Service")
+                            context.startService(serviceIntent)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                applicationContext.startForegroundService(serviceIntent)
-                            } else {
-                                applicationContext.startService(serviceIntent)
+                                Log.i(MainActivity.TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
+                                context.startForegroundService(serviceIntent)
                             }
                         } else {
-                            Log.i(TAG, "Event Monitoring Service Already Running")
+                            Log.i(MainActivity.TAG, "EventMonitoringService Already Running")
                         }
                     }
                 } catch (exception: Exception) {

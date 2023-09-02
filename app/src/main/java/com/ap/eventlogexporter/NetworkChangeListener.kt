@@ -79,7 +79,7 @@ class NetworkChangeListener private constructor(context: Context) {
 
     fun logState() {
         val message =
-            "Network Status: Connection Type: $lastLoggedConnectionType, Network Type: $lastLoggedNetworkType"
+            "Network Status: {Connection Type: $lastLoggedConnectionType, Network Type: $lastLoggedNetworkType}"
         Log.i(TAG, message)
         fileWriter.writeToFile(message)
     }

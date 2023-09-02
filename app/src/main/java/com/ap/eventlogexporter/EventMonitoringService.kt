@@ -35,13 +35,13 @@ class EventMonitoringService : Service() {
                 networkChangeListener.startListening()
 
                 when (intent.action) {
-                    Intent.ACTION_PACKAGE_REPLACED -> {
-                        sharedPreferences.edit().clear().apply()
-                        logEvent(
-                            fileWriter,
-                            "Event: Package replacement event received and sharedPreferences were cleared"
-                        )
-                    }
+//                    Intent.ACTION_PACKAGE_REPLACED -> {
+//                        sharedPreferences.edit().clear().apply()
+//                        logEvent(
+//                            fileWriter,
+//                            "Event: Package replacement event received and sharedPreferences were cleared"
+//                        )
+//                    }
 
                     Intent.ACTION_SHUTDOWN -> logEvent(fileWriter, "Event: Device Shutting Down")
                     Intent.ACTION_SCREEN_ON -> logEvent(fileWriter, "Event: Screen Turned On")
@@ -61,8 +61,16 @@ class EventMonitoringService : Service() {
     override fun onCreate() {
         super.onCreate()
         try {
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForeground()
+                Log.d(TAG, "EventMonitoringService Started as Foreground Service")
+            } else {
+                Log.d(TAG, "EventMonitoringService Started as Regular Service")
+            }
+
             val intentFilter = IntentFilter().apply {
-                addAction(Intent.ACTION_PACKAGE_REPLACED)
+                //addAction(Intent.ACTION_PACKAGE_REPLACED)
                 addAction(Intent.ACTION_SHUTDOWN)
                 addAction(Intent.ACTION_SCREEN_OFF)
                 addAction(Intent.ACTION_SCREEN_ON)
@@ -72,12 +80,6 @@ class EventMonitoringService : Service() {
             registerReceiver(broadcastReceiver, intentFilter)
             Log.d(TAG, "DeviceEventReceiver Initialized")
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForeground()
-                Log.d(TAG, "Event Monitoring Service Started as Foreground Service")
-            } else {
-                Log.d(TAG, "Event Monitoring Service Started as Regular Service")
-            }
         } catch (exception: Exception) {
             Log.e(TAG, "Exception:", exception)
         }
@@ -97,26 +99,27 @@ class EventMonitoringService : Service() {
         createNotificationChannel()
 
         val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
         val smallIcon = R.drawable.myicon // Replace with your small icon resource
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("My Service")
+            .setContentTitle("Event Log Exporter")
             .setContentText("Service is running.")
             .setSmallIcon(smallIcon)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(pendingIntent) // Use FLAG_UPDATE_CURRENT here
             .setAutoCancel(true)
 
         return builder.build()
     }
 
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "My Service Channel",
+                "EventMonitoringService Channel",
                 NotificationManager.IMPORTANCE_DEFAULT
             )
             val notificationManager =

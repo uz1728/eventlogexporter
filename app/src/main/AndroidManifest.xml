@@ -9,6 +9,7 @@
 
     <application
         android:allowBackup="true"
+        android:hardwareAccelerated="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
         android:fullBackupContent="@xml/backup_rules"
@@ -37,6 +38,8 @@
 
         <activity
             android:name=".MainActivity"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
             android:exported="true"
             android:theme="@style/Theme.MyApplication">
             <intent-filter>
@@ -67,8 +70,10 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
-                <action android:name="android.intent.action.USER_PRESENT" />
+                <!-- <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+                 -->
+                <!--<action android:name="android.intent.action.USER_PRESENT" />
+                -->
             </intent-filter>
         </receiver>
     </application>

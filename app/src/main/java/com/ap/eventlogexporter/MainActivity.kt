@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -17,7 +18,8 @@ class MainActivity : AppCompatActivity() {
         val TAG = MainActivity::class.java.simpleName
     }
 
-    private val initializeOnStartupReceiver = InitializeOnStartupReceiver()
+    private lateinit var initializeOnStartupReceiver: InitializeOnStartupReceiver
+    private lateinit var sharedPreferences: SharedPreferences // Declare it as a member property
 
     inner class InitializeOnStartupReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -41,13 +43,14 @@ class MainActivity : AppCompatActivity() {
                         if (!isServiceRunning(EventMonitoringService::class.java, context)) {
                             val serviceIntent = Intent(context, EventMonitoringService::class.java)
 
+                            Log.i(TAG, "Trying to Start EventMonitoringService as Regular Service")
+                            context.startService(serviceIntent)
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                Log.i(TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
                                 context.startForegroundService(serviceIntent)
-                            } else {
-                                context.startService(serviceIntent)
                             }
                         } else {
-                            Log.i(TAG, "Event Monitoring Service Already Running")
+                            Log.i(TAG, "EventMonitoringService Already Running")
                         }
                     }
                 } catch (exception: Exception) {
@@ -59,15 +62,17 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(TAG, "MainActivity Instance Created")
         setContentView(R.layout.main_layout)
+
+        initializeOnStartupReceiver = InitializeOnStartupReceiver()
+        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val enrollmentCompleted = sharedPreferences.getBoolean("enrollmentCompleted", false)
+        val receiverRegistered = sharedPreferences.getBoolean("receiverRegistered", false)
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
-
-        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        val enrollmentCompleted = sharedPreferences.getBoolean("enrollmentCompleted", false)
-        val receiverRegistered = sharedPreferences.getBoolean("receiverRegistered", false)
 
         if (!enrollmentCompleted) {
             navController.navigate(R.id.enrollmentFragment)
@@ -75,7 +80,7 @@ class MainActivity : AppCompatActivity() {
             val intentFilter = IntentFilter().apply {
                 addAction(Intent.ACTION_BOOT_COMPLETED)
                 //addAction(Intent.ACTION_LOCKED_BOOT_COMPLETED)
-                addAction(Intent.ACTION_USER_PRESENT)
+                //addAction(Intent.ACTION_USER_PRESENT)
             }
 
             if (!receiverRegistered) {
@@ -90,12 +95,11 @@ class MainActivity : AppCompatActivity() {
 
             if (!isServiceRunning(EventMonitoringService::class.java, this)) {
                 val serviceIntent = Intent(this, EventMonitoringService::class.java)
+                Log.i(TAG, "Trying to Start EventMonitoringService as Regular Service")
+                startService(serviceIntent)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    Log.i(TAG, "Trying to Start Event Monitoring Service as Foreground Service")
+                    Log.i(TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
                     startForegroundService(serviceIntent)
-                } else {
-                    Log.i(TAG, "Trying to Start Event Monitoring Service as Regular Service")
-                    startService(serviceIntent)
                 }
             }
 
@@ -107,6 +111,5 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(initializeOnStartupReceiver)
     }
 }
