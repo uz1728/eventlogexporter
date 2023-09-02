@@ -2,4 +2,7 @@
     <string name="app_name">Event Log Exporter</string>
     <string name="my_service_channel">My Service Channel</string>
     <string name="my_service_channel_description">Channel for My Service</string>
+    <string name="number_of_events">Number of Events: %1$d</string>
+    <string name="email_event_log">Email Event Log</string>
+    <string name="send_via_email">Send via Email</string>
 </resources>

@@ -7,7 +7,7 @@
         android:id="@+id/enrollmentFragment"
         android:name="com.ap.eventlogexporter.EnrollmentFragment"
         android:label="EnrollmentFragment"
-        tools:layout="@layout/enrollment_layout" >
+        tools:layout="@layout/enrollment_layout">
         <action
             android:id="@+id/action_enrollmentFragment_to_uploadFragment"
             app:destination="@id/uploadFragment" />

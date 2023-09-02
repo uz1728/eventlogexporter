@@ -1,6 +1,8 @@
 package com.ap.eventlogexporter.utils
+
 import android.app.ActivityManager
 import android.content.Context
+
 object Utils {
     fun isServiceRunning(serviceClass: Class<*>, context: Context): Boolean {
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
