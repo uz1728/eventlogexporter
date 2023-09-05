@@ -13,7 +13,7 @@ import androidx.fragment.app.Fragment
 
 class EnrollmentFragment : Fragment() {
     companion object {
-        val TAG = EnrollmentFragment::class.java.simpleName
+        val TAG: String = EnrollmentFragment::class.java.simpleName
     }
 
     override fun onCreateView(
@@ -28,7 +28,7 @@ class EnrollmentFragment : Fragment() {
 
         enrollEntry.hint = "Enter enrollment ID (P1-1XXX or P3-3XXX)"
 
-        enrollButton.text = "Enroll"
+        enrollButton.text = getString(R.string.enroll_button)
         enrollButton.setOnClickListener {
             handleEnrollment()
         }
@@ -40,7 +40,7 @@ class EnrollmentFragment : Fragment() {
         val enteredId = enrollEntry.text.toString()
 
         // Define the desired format using a regular expression
-        val validFormat = Regex("(P(1-1|3-3)\\d{3})") // P1-1ddd or P3-3ddd where d is a number
+        val validFormat = Regex("(debug|(P(1-1|3-3)\\d{3}))") // P1-1ddd or P3-3ddd where d is a number
 
         if (enteredId.matches(validFormat)) {
             val sharedPreferences =
@@ -52,7 +52,7 @@ class EnrollmentFragment : Fragment() {
             }
 
             activity?.recreate()
-            Log.d("EnrollmentFragment", "Activity Recreated")
+            Log.d(TAG, "Activity Recreated")
 
         } else {
             // Display a toast to inform the user about the invalid format

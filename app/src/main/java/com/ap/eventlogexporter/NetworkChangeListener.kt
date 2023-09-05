@@ -10,7 +10,7 @@ import android.util.Log
 class NetworkChangeListener private constructor(context: Context) {
 
     companion object {
-        val TAG = NetworkChangeListener::class.java.simpleName
+        val TAG: String = NetworkChangeListener::class.java.simpleName
         private var instance: NetworkChangeListener? = null
 
         @JvmStatic
@@ -25,34 +25,26 @@ class NetworkChangeListener private constructor(context: Context) {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
-    private val fileWriter = FileWriter(context)
+    private val eventLogWriter = EventLogWriter.getInstance(context)
 
-    var lastLoggedConnectionType: String? = null
-        private set
-
-    var lastLoggedNetworkType: String? = null
-        private set
+    private var lastLoggedConnectionType: String? = null
+    private var lastLoggedNetworkType: String? = null
+    private var isListening = false
 
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-
         override fun onAvailable(network: Network) {
-            super.onAvailable(network)
-            val networkCapabilities = conMan.getNetworkCapabilities(network)
-            handleNetworkStateChanged("Connected", networkCapabilities)
+            handleNetworkStateChanged("Connected", conMan.getNetworkCapabilities(network))
         }
 
         override fun onLost(network: Network) {
-            super.onLost(network)
             handleNetworkStateChanged("Disconnected", conMan.getNetworkCapabilities(network))
         }
 
         override fun onUnavailable() {
-            super.onUnavailable()
             handleNetworkStateChanged("Unavailable", conMan.getNetworkCapabilities(null))
         }
 
         override fun onLosing(network: Network, maxMsToLive: Int) {
-            super.onLosing(network, maxMsToLive)
             handleNetworkStateChanged(
                 "Estimated to Lose Connection in $maxMsToLive ms",
                 conMan.getNetworkCapabilities(network)
@@ -73,18 +65,16 @@ class NetworkChangeListener private constructor(context: Context) {
         if (connectionType != lastLoggedConnectionType || networkType != lastLoggedNetworkType) {
             this.lastLoggedConnectionType = connectionType
             this.lastLoggedNetworkType = networkType
-            logState()
+            logState("Network State Changed")
         }
     }
 
-    fun logState() {
+    fun logState(deviceStatus: String?) {
         val message =
-            "Network Status: {Connection Type: $lastLoggedConnectionType, Network Type: $lastLoggedNetworkType}"
+            "$deviceStatus,$lastLoggedConnectionType,$lastLoggedNetworkType"
         Log.i(TAG, message)
-        fileWriter.writeToFile(message)
+        eventLogWriter.logMessageWithTimestamp(message)
     }
-
-    private var isListening = false
 
     fun startListening() {
         if (!isListening) {
@@ -97,7 +87,6 @@ class NetworkChangeListener private constructor(context: Context) {
                 isListening = true
                 Log.d(TAG, "Started Listening")
             } catch (e: SecurityException) {
-                // Handle the case when you don't have the necessary permissions.
                 Log.e(TAG, "Failed to register network callback: ${e.message}")
             }
         }
@@ -110,13 +99,13 @@ class NetworkChangeListener private constructor(context: Context) {
                 isListening = false
                 Log.d(TAG, "Stopped Listening")
             } catch (e: IllegalArgumentException) {
-                // Handle the case when the callback is not registered.
                 Log.e(TAG, "Failed to unregister network callback: ${e.message}")
             }
         }
     }
 
-    fun getNetworkState(): Pair<String, String?> {
-        return Pair(lastLoggedConnectionType ?: "Disconnected", lastLoggedNetworkType)
+    fun getNetworkState(): Any {
+        val pair = Pair(lastLoggedConnectionType ?: "null", lastLoggedNetworkType ?: "null")
+        return pair.toString()
     }
 }

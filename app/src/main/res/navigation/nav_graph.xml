@@ -9,15 +9,19 @@
         android:label="EnrollmentFragment"
         tools:layout="@layout/enrollment_layout">
         <action
-            android:id="@+id/action_enrollmentFragment_to_uploadFragment"
-            app:destination="@id/uploadFragment" />
+            android:id="@+id/action_enrollmentFragment_to_exportFragment"
+            app:destination="@id/exportFragment" />
     </fragment>
 
     <fragment
-        android:id="@+id/uploadFragment"
-        android:name="com.ap.eventlogexporter.UploadFragment"
-        android:label="UploadFragment"
-        tools:layout="@layout/upload_layout" />
+        android:id="@+id/exportFragment"
+        android:name="com.ap.eventlogexporter.ExportFragment"
+        android:label="ExportFragment"
+        tools:layout="@layout/export_layout" >
+        <action
+            android:id="@+id/action_exportFragment_self"
+            app:destination="@id/exportFragment" />
+    </fragment>
 
     <!-- Other navigation destinations -->
 

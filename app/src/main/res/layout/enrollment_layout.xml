@@ -3,23 +3,34 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:background="@android:color/white">
 
     <EditText
         android:id="@+id/enrollEntry"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="32dp"
-        android:autofillHints=""
+        android:layout_marginTop="32dp"
+        android:padding="12dp"
+        android:inputType="text"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
         android:gravity="center"
-        android:inputType="textShortMessage"
-        tools:ignore="LabelFor,TextFields" />
+        tools:ignore="LabelFor"
+        android:autofillHints="" />
 
     <Button
         android:id="@+id/enrollButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="16dp"
+        android:textSize="18sp"
+        android:background="@drawable/button_background"
+        android:textColor="@android:color/white"
+        android:elevation="4dp"
+        android:paddingVertical="12dp"
+        android:gravity="center" />
 
 </LinearLayout>

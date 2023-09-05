@@ -15,40 +15,35 @@ import com.ap.eventlogexporter.utils.Utils.isServiceRunning
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        val TAG = MainActivity::class.java.simpleName
+        val TAG: String = MainActivity::class.java.simpleName
     }
 
-    private lateinit var initializeOnStartupReceiver: InitializeOnStartupReceiver
-    private lateinit var sharedPreferences: SharedPreferences // Declare it as a member property
+    private lateinit var sharedPreferences: SharedPreferences
 
-    inner class InitializeOnStartupReceiver : BroadcastReceiver() {
+    private lateinit var eventLogWriter: EventLogWriter  // Declare a property for FileWriter
+
+    private val enrollmentCompleted by lazy {
+        sharedPreferences.getBoolean("enrollmentCompleted", false)
+    }
+
+    private val receiverRegistered by lazy {
+        sharedPreferences.getBoolean("receiverRegistered", false)
+    }
+
+    private val networkChangeListener by lazy {
+        NetworkChangeListener.getInstance(applicationContext)
+    }
+
+    private val initializeOnStartupReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (context != null && intent != null && intent.action == Intent.ACTION_BOOT_COMPLETED) {
                 try {
-                    val sharedPreferences =
-                        context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-                    val enrollmentCompleted =
-                        sharedPreferences.getBoolean("enrollmentCompleted", false)
-
                     if (enrollmentCompleted) {
-                        val fileWriter = FileWriter(context)
-                        val networkChangeListener = NetworkChangeListener.getInstance(context)
                         networkChangeListener.startListening()
-
-                        val message = "Device Boot Completed"
-                        Log.i(TAG, message)
-                        fileWriter.writeToFile(message)
-                        networkChangeListener.logState()
+                        networkChangeListener.logState("Device Boot Completed")
 
                         if (!isServiceRunning(EventMonitoringService::class.java, context)) {
-                            val serviceIntent = Intent(context, EventMonitoringService::class.java)
-
-                            Log.i(TAG, "Trying to Start EventMonitoringService as Regular Service")
-                            context.startService(serviceIntent)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                Log.i(TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
-                                context.startForegroundService(serviceIntent)
-                            }
+                            startMonitoringService(context)
                         } else {
                             Log.i(TAG, "EventMonitoringService Already Running")
                         }
@@ -60,15 +55,24 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startMonitoringService(context: Context) {
+        val serviceIntent = Intent(context, EventMonitoringService::class.java)
+        Log.i(TAG, "Trying to Start EventMonitoringService as Regular Service")
+        context.startService(serviceIntent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.i(TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
+            context.startForegroundService(serviceIntent)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "MainActivity Instance Created")
         setContentView(R.layout.main_layout)
 
-        initializeOnStartupReceiver = InitializeOnStartupReceiver()
+        eventLogWriter = EventLogWriter.getInstance(applicationContext)  // Initialize the FileWriter instance here
+
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        val enrollmentCompleted = sharedPreferences.getBoolean("enrollmentCompleted", false)
-        val receiverRegistered = sharedPreferences.getBoolean("receiverRegistered", false)
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
@@ -79,8 +83,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             val intentFilter = IntentFilter().apply {
                 addAction(Intent.ACTION_BOOT_COMPLETED)
-                //addAction(Intent.ACTION_LOCKED_BOOT_COMPLETED)
-                //addAction(Intent.ACTION_USER_PRESENT)
             }
 
             if (!receiverRegistered) {
@@ -93,23 +95,23 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            // Check if the current destination is the exportFragment
+            val currentDestinationId = navController.currentDestination?.id
+            // Navigate to exportFragment only if not already there
             if (!isServiceRunning(EventMonitoringService::class.java, this)) {
-                val serviceIntent = Intent(this, EventMonitoringService::class.java)
-                Log.i(TAG, "Trying to Start EventMonitoringService as Regular Service")
-                startService(serviceIntent)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    Log.i(TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
-                    startForegroundService(serviceIntent)
-                }
+                startMonitoringService(this)
             }
-
-            val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
             networkChangeListener.startListening()
-            navController.navigate(R.id.action_enrollmentFragment_to_uploadFragment)
+
+            if (currentDestinationId != R.id.exportFragment) {
+                navController.navigate(R.id.action_enrollmentFragment_to_exportFragment)
+            }
         }
     }
 
+
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "MainActivity Instance Destroyed")
     }
 }
