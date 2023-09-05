@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -18,26 +18,25 @@ abstract class BaseFileWriter(
     companion object {
         val TAG: String = BaseFileWriter::class.java.simpleName
         const val DATE_FORMAT = "MM-dd-yyyy_HH:mm:ss:SSS_z"
+        fun formatTimestamp(timestamp: Long): String {
+            val sdf = SimpleDateFormat(DATE_FORMAT, Locale.getDefault())
+            val date = Date(timestamp)
+            return sdf.format(date)
+        }
     }
 
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     private val filePathPref = "${fileName}FilePath"
     private val numberOfLinesPref = "${fileName}NumberOfLines"
 
-    private fun formatTimestamp(timestamp: Long): String {
-        val sdf = SimpleDateFormat(DATE_FORMAT, Locale.getDefault())
-        val date = Date(timestamp)
-        return sdf.format(date)
-    }
-
     protected open fun writeToFileWithTimestamp(message: String): String? {
         val timestamp = System.currentTimeMillis()
         val formattedTimestamp = formatTimestamp(timestamp)
 
-        val enrolledId = sharedPreferences.getString("enrolledId", null)
+        val participantId = sharedPreferences.getString("participantId", null)
 
-        if (enrolledId.isNullOrEmpty()) {
-            // Handle the case when enrolledId is not set
+        if (participantId.isNullOrEmpty()) {
+            // Handle the case when participantId is not set
             return null
         }
 
@@ -50,7 +49,7 @@ abstract class BaseFileWriter(
                 "${fileName} was removed or deleted or never created, creating new one"
             )
             // Check if the file exists, and if not, create it
-            val createdFile = File(context.filesDir, "${enrolledId}_${fileName}.csv")
+            val createdFile = File(context.filesDir, "${participantId}_${fileName}.csv")
             if (!createdFile.exists()) {
                 createNewFile(createdFile)
             }
@@ -59,12 +58,12 @@ abstract class BaseFileWriter(
         }
 
         try {
-            val newFileName = "${enrolledId}_${fileName}_${formattedTimestamp}.csv"
+            val newFileName = "${participantId}_${fileName}_${formattedTimestamp}.csv"
             val newFile = File(context.filesDir, newFileName)
 
             return if (originalFile.renameTo(newFile)) {
                 // Append the message to the newly renamed file
-                val fullMessage = "$enrolledId,$formattedTimestamp,$message\n"
+                val fullMessage = "$participantId,$formattedTimestamp,$message\n"
                 newFile.appendText(fullMessage)
 
                 // Update the number of lines in SharedPreferences

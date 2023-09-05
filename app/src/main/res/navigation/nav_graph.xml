@@ -5,7 +5,7 @@
 
     <fragment
         android:id="@+id/enrollmentFragment"
-        android:name="com.ap.eventlogexporter.EnrollmentFragment"
+        android:name="com.uza.eventlogexporter.EnrollmentFragment"
         android:label="EnrollmentFragment"
         tools:layout="@layout/enrollment_layout">
         <action
@@ -15,7 +15,7 @@
 
     <fragment
         android:id="@+id/exportFragment"
-        android:name="com.ap.eventlogexporter.ExportFragment"
+        android:name="com.uza.eventlogexporter.ExportFragment"
         android:label="ExportFragment"
         tools:layout="@layout/export_layout" >
         <action

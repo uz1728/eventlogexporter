@@ -1,16 +1,18 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
-import com.ap.eventlogexporter.utils.Utils.isServiceRunning
+import com.uza.eventlogexporter.utils.Utils.isServiceRunning
+import com.uza.eventlogexporter.utils.Utils.startEventMonitoringService
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -37,31 +39,23 @@ class MainActivity : AppCompatActivity() {
     private val initializeOnStartupReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (context != null && intent != null && intent.action == Intent.ACTION_BOOT_COMPLETED) {
-                try {
-                    if (enrollmentCompleted) {
-                        networkChangeListener.startListening()
-                        networkChangeListener.logState("Device Boot Completed")
+                lifecycleScope.launch {
+                    try {
+                        if (enrollmentCompleted) {
+                            networkChangeListener.startListening()
+                            networkChangeListener.logState("Device Boot Completed")
 
-                        if (!isServiceRunning(EventMonitoringService::class.java, context)) {
-                            startMonitoringService(context)
-                        } else {
-                            Log.i(TAG, "EventMonitoringService Already Running")
+                            if (!isServiceRunning(EventMonitoringService::class.java, context)) {
+                                startEventMonitoringService(TAG, context)
+                            } else {
+                                Log.i(TAG, "EventMonitoringService Already Running")
+                            }
                         }
+                    } catch (exception: Exception) {
+                        Log.e(TAG, "Exception:", exception)
                     }
-                } catch (exception: Exception) {
-                    Log.e(TAG, "Exception:", exception)
                 }
             }
-        }
-    }
-
-    private fun startMonitoringService(context: Context) {
-        val serviceIntent = Intent(context, EventMonitoringService::class.java)
-        Log.i(TAG, "Trying to Start EventMonitoringService as Regular Service")
-        context.startService(serviceIntent)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.i(TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
-            context.startForegroundService(serviceIntent)
         }
     }
 
@@ -70,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "MainActivity Instance Created")
         setContentView(R.layout.main_layout)
 
-        eventLogWriter = EventLogWriter.getInstance(applicationContext)  // Initialize the FileWriter instance here
+        eventLogWriter = EventLogWriter.getInstance(applicationContext)
 
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
@@ -95,20 +89,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // Check if the current destination is the exportFragment
             val currentDestinationId = navController.currentDestination?.id
-            // Navigate to exportFragment only if not already there
-            if (!isServiceRunning(EventMonitoringService::class.java, this)) {
-                startMonitoringService(this)
-            }
-            networkChangeListener.startListening()
+            lifecycleScope.launch {
+                if (!isServiceRunning(EventMonitoringService::class.java, this@MainActivity)) {
+                    startEventMonitoringService(TAG, this@MainActivity)
+                }
+                networkChangeListener.startListening()
 
-            if (currentDestinationId != R.id.exportFragment) {
-                navController.navigate(R.id.action_enrollmentFragment_to_exportFragment)
+                if (currentDestinationId != R.id.exportFragment) {
+                    navController.navigate(R.id.action_enrollmentFragment_to_exportFragment)
+                }
             }
         }
     }
-
 
     override fun onDestroy() {
         super.onDestroy()

@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,35 +9,73 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import android.view.Display
 import androidx.core.app.NotificationCompat
+import android.hardware.display.DisplayManager
+import android.view.WindowManager
 
 class EventMonitoringService : Service() {
     companion object {
         val TAG: String = EventMonitoringService::class.java.simpleName
         const val CHANNEL_ID = "EventMonitoringServiceChannel"
+        const val NOTIFICATION_ID = 1
     }
 
     private val deviceEventReceiver = DeviceEventReceiver()
 
     inner class DeviceEventReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (context != null && intent != null) {
-                val applicationContext = context.applicationContext
-                val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
-                networkChangeListener.startListening()
-
-                when (intent.action) {
-                    Intent.ACTION_USER_PRESENT -> networkChangeListener.logState("Event: User Unlocked Device")
-                    Intent.ACTION_SHUTDOWN -> networkChangeListener.logState("Device Shutting Down")
-                    Intent.ACTION_SCREEN_ON -> networkChangeListener.logState("Screen Turned On")
-                    Intent.ACTION_SCREEN_OFF -> networkChangeListener.logState("Screen Turned Off")
-                }
-            } else {
+            if (context == null || intent == null) {
                 Log.e(TAG, "Unable to receive events due to context and/or intent being null")
+                return
             }
+
+            val applicationContext = context.applicationContext
+            val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
+            networkChangeListener.startListening()
+
+            val action = intent.action
+            val displayState = getDisplayState(context)
+
+            val logMessage = when (action) {
+                Intent.ACTION_USER_PRESENT -> "User Unlocked Device"
+                Intent.ACTION_SHUTDOWN -> "Device Shutting Down"
+                Intent.ACTION_SCREEN_ON -> "Screen Interactive"
+                Intent.ACTION_SCREEN_OFF -> "Screen Non-Interactive"
+                else -> "Unknown Action: $action"
+            }
+
+            networkChangeListener.logState("${logMessage}: ${displayState}")
+        }
+
+
+        private fun getDisplayState(context: Context): String {
+            val displays: Array<Display>?
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val displayManager =
+                    context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+                displays = displayManager.displays
+            } else {
+                val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+                displays = arrayOf(windowManager.defaultDisplay)
+            }
+
+            if (!displays.isNullOrEmpty()) {
+                val displayInfo = displays[0].state
+                return when (displayInfo) {
+                    Display.STATE_ON -> "Display On"
+                    Display.STATE_OFF -> "Display Off"
+                    Display.STATE_DOZE -> "Display Dozing"
+                    Display.STATE_DOZE_SUSPEND -> "Display Dozing Suspended"
+                    else -> "Unknown"
+                }
+            }
+            return "Unknown"
         }
     }
 
@@ -47,12 +85,15 @@ class EventMonitoringService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 startForeground()
-                Log.d(TAG, "EventMonitoringService Started as Foreground Service")
+                Log.d(TAG, "EventMonitoringService Started as a Foreground Service")
+
             } else {
-                Log.d(TAG, "EventMonitoringService Started as Regular Service")
+                // Log the startup time
+                Log.d(TAG, "EventMonitoringService Started as a Regular Service")
             }
 
             val intentFilter = IntentFilter().apply {
@@ -66,9 +107,10 @@ class EventMonitoringService : Service() {
             Log.d(TAG, "DeviceEventReceiver Initialized")
 
         } catch (exception: Exception) {
-            Log.e(TAG, "Exception:", exception)
+            Log.e(TAG, "Server was unable to be properly started:", exception)
         }
     }
+
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY // Service will be restarted if terminated by the system
@@ -76,7 +118,16 @@ class EventMonitoringService : Service() {
 
     private fun startForeground() {
         val notification = createNotification()
-        startForeground(1, notification)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
 
     private fun createNotification(): Notification {

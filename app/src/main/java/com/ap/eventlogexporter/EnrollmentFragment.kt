@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.content.Context
 import android.os.Bundle
@@ -26,7 +26,7 @@ class EnrollmentFragment : Fragment() {
         val enrollEntry =
             view.findViewById<EditText>(R.id.enrollEntry) // Initialize editText variable
 
-        enrollEntry.hint = "Enter enrollment ID (P1-1XXX or P3-3XXX)"
+        enrollEntry.hint = "Enter participant ID (P1-1XXX or P3-3XXX)"
 
         enrollButton.text = getString(R.string.enroll_button)
         enrollButton.setOnClickListener {
@@ -46,7 +46,7 @@ class EnrollmentFragment : Fragment() {
             val sharedPreferences =
                 requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
             sharedPreferences.edit().apply {
-                putString("enrolledId", enteredId)
+                putString("participantId", enteredId)
                 putBoolean("enrollmentCompleted", true)
                 apply()
             }

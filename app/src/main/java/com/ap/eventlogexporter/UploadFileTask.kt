@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
@@ -8,6 +8,8 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
 import java.io.IOException
+import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -29,8 +31,11 @@ class UploadFileTask() {
 
         return withContext(Dispatchers.IO) {
             try {
-
-                val client = OkHttpClient()
+                // Create an OkHttpClient with a custom timeout
+                val client = OkHttpClient.Builder()
+                    .connectTimeout(5, TimeUnit.SECONDS) // Set connection timeout to 10 seconds
+                    .readTimeout(10, TimeUnit.SECONDS)    // Set read timeout to 10 seconds
+                    .build()
 
                 val response = client.newCall(buildRequest(fileUri)).execute()
 
@@ -46,15 +51,16 @@ class UploadFileTask() {
 
                     serverResponse
                 }
-            }
-
-            catch (e: IOException) {
-
-                val msg = "Error: ${e.message}"
+            } catch (e: SocketTimeoutException) {
+                // Handle socket timeout exception here
+                val msg = "Socket Timeout Error: Took too long to connect"
                 Log.e(TAG, msg)
-
                 msg
-
+            } catch (e: IOException) {
+                // Handle other IO exceptions here
+                val msg = "IO Error: ${e.message}"
+                Log.e(TAG, msg)
+                msg
             }
         }
     }

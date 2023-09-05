@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter.ui.theme
+package com.uza.eventlogexporter.ui.theme
 
 import android.app.Activity
 import android.os.Build

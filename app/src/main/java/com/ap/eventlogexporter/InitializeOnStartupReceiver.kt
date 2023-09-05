@@ -1,11 +1,12 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.os.SystemClock
 import android.util.Log
-import com.ap.eventlogexporter.utils.Utils
+import com.uza.eventlogexporter.utils.Utils
+import com.uza.eventlogexporter.utils.Utils.startEventMonitoringService
 
 class InitializeOnStartupReceiver : BroadcastReceiver() {
 
@@ -22,6 +23,10 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
         val applicationContext = context.applicationContext
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
+                // Capture the boot time
+                val serviceCreatedTime = SystemClock.elapsedRealtime()
+                Log.d(TAG, "Time Since System Booted: $serviceCreatedTime")
+                // Calculate the startup time
                 try {
                     val sharedPreferences =
                         applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
@@ -32,18 +37,10 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
                         networkChangeListener.startListening()
 
                         val message = "Device Boot Completed"
-                        Log.i(TAG, message)
                         networkChangeListener.logState((message))
 
                         if (!Utils.isServiceRunning(EventMonitoringService::class.java, context)) {
-                            val serviceIntent = Intent(context, EventMonitoringService::class.java)
-
-                            Log.i(MainActivity.TAG, "Trying to Start EventMonitoringService as Regular Service")
-                            context.startService(serviceIntent)
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                Log.i(MainActivity.TAG, "Trying to Upgrade EventMonitoringService to Foreground Service")
-                                context.startForegroundService(serviceIntent)
-                            }
+                            startEventMonitoringService(TAG, context)
                         } else {
                             Log.i(MainActivity.TAG, "EventMonitoringService Already Running")
                         }

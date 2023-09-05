@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.content.Context
 import android.net.ConnectivityManager

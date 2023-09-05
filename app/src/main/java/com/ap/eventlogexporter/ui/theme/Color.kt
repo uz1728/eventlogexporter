@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter.ui.theme
+package com.uza.eventlogexporter.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

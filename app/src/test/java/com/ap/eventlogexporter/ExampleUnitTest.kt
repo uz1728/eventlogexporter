@@ -1,4 +1,4 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

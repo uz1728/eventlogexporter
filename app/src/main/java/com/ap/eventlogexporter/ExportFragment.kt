@@ -1,10 +1,9 @@
-package com.ap.eventlogexporter
+package com.uza.eventlogexporter
 
 import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -15,10 +14,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.File
+
 
 class ExportFragment : Fragment() {
 
@@ -96,29 +97,50 @@ class ExportFragment : Fragment() {
     }
 
     private fun onEmailButtonClick() {
-        val sharedPreferences = requireContext().applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        val enrolledId = sharedPreferences.getString("enrolledId", null)
+        val context = requireContext()
 
-        val filePath = sharedPreferences.getString("eventLogFilePath", null)
-        val fileUri = if (!filePath.isNullOrEmpty() && File(filePath).exists()) {
-            Uri.fromFile(File(filePath))
-        } else {
-            null
+        val sharedPreferences =
+            requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val participantId = sharedPreferences.getString("participantId", null)
+        val file = sharedPreferences.getString("event_logFilePath", null)?.let { File(it) }
+
+        val uri = file?.let {
+            FileProvider.getUriForFile(context, "com.uza.eventlogexporter.fileprovider",
+                it
+            )
         }
 
-        val emailIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_SUBJECT, "${enrolledId} Event Log")
-            putExtra(Intent.EXTRA_TEXT, "Here's the event log file for ${enrolledId}.")
-            putExtra(Intent.EXTRA_STREAM, fileUri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
+        val emailIntent = Intent(Intent.ACTION_SEND)
+        emailIntent.type = "text/comma-separated-values"
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, "${participantId} Event Log")
+        emailIntent.putExtra(Intent.EXTRA_TEXT, "Here's the event log file for ${participantId}.")
+        emailIntent.putExtra(Intent.EXTRA_STREAM, uri)
+        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+        // Specify the email recipient (optional)
+        // emailIntent.putExtra(Intent.EXTRA_EMAIL, arrayOf("recipient@example.com"))
 
         // Create a chooser to allow the user to select an email app
-        val chooserIntent = Intent.createChooser(emailIntent, getString(R.string.send_via_email))
-
+        val chooserIntent = Intent.createChooser(emailIntent, "Send via Email")
+        // Suppress SecurityException by giving all possible packages read permission? (file transferred either way, exception is ineffective)
+        val suppressSecurityException = true
+        if (suppressSecurityException) {
+            val resInfoList =
+                context.packageManager.queryIntentActivities(
+                    chooserIntent,
+                    PackageManager.MATCH_DEFAULT_ONLY
+                )
+            for (resolveInfo in resInfoList) {
+                val packageName = resolveInfo.activityInfo.packageName
+                context.grantUriPermission(
+                    packageName,
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+        }
         // Check if there are email apps available on the device
-        if (requireContext().applicationContext.let { emailIntent.resolveActivity(it.packageManager) } != null) {
+        if (emailIntent.resolveActivity(context.packageManager) != null) {
             startActivity(chooserIntent)
         } else {
             // Handle the case where no email app is available

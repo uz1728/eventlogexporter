@@ -4,11 +4,13 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.RECEIVE_LOCKED_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
+
         android:allowBackup="true"
         android:hardwareAccelerated="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -21,6 +23,10 @@
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="34">
 
+        <meta-data
+            android:name="com.uza.eventlogexporter"
+            android:value="some_value" />
+
         <service
             android:name=".EventMonitoringService"
             android:enabled="true"
@@ -29,7 +35,7 @@
 
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.ap.eventlogexporter.fileprovider"
+            android:authorities="com.uza.eventlogexporter.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data
@@ -55,8 +61,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <!-- <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
-                 -->
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <!--<action android:name="android.intent.action.USER_PRESENT" />
                 -->
             </intent-filter>
