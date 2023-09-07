@@ -82,7 +82,9 @@ class ExportFragment : Fragment() {
         lifecycleScope.launch {
             val uploadTask = UploadFileTask()
             lateinit var uploadResult: String // Declare uploadResult outside the try-catch block
-
+            val attempt = "Attempting Upload..."
+            Toast.makeText(requireContext().applicationContext, attempt, Toast.LENGTH_SHORT).show()
+            Log.i(TAG, attempt)
             try {
                 uploadResult = uploadTask.uploadFile(fileUri)
                 Log.d(TAG, "File upload result received: $uploadResult")

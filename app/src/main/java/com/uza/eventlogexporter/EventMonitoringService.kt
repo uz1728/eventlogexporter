@@ -10,12 +10,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import android.view.Display
 import androidx.core.app.NotificationCompat
-import android.hardware.display.DisplayManager
+import android.os.Binder
+import android.view.Display
 import android.view.WindowManager
 
 class EventMonitoringService : Service() {
@@ -25,62 +26,17 @@ class EventMonitoringService : Service() {
         const val NOTIFICATION_ID = 1
     }
 
-    private val deviceEventReceiver = DeviceEventReceiver()
+    private val deviceEventReceiver = DeviceEventReceiver.getInstance()
 
-    inner class DeviceEventReceiver : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (context == null || intent == null) {
-                Log.e(TAG, "Unable to receive events due to context and/or intent being null")
-                return
-            }
-
-            val applicationContext = context.applicationContext
-            val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
-            networkChangeListener.startListening()
-
-            val action = intent.action
-            val displayState = getDisplayState(context)
-
-            val logMessage = when (action) {
-                Intent.ACTION_USER_PRESENT -> "User Unlocked Device"
-                Intent.ACTION_SHUTDOWN -> "Device Shutting Down"
-                Intent.ACTION_SCREEN_ON -> "Screen Interactive"
-                Intent.ACTION_SCREEN_OFF -> "Screen Non-Interactive"
-                else -> "Unknown Action: $action"
-            }
-
-            networkChangeListener.logState("${logMessage}: ${displayState}")
-        }
-
-
-        private fun getDisplayState(context: Context): String {
-            val displays: Array<Display>?
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                val displayManager =
-                    context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
-                displays = displayManager.displays
-            } else {
-                val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-                displays = arrayOf(windowManager.defaultDisplay)
-            }
-
-            if (!displays.isNullOrEmpty()) {
-                val displayInfo = displays[0].state
-                return when (displayInfo) {
-                    Display.STATE_ON -> "Display On"
-                    Display.STATE_OFF -> "Display Off"
-                    Display.STATE_DOZE -> "Display Dozing"
-                    Display.STATE_DOZE_SUSPEND -> "Display Dozing Suspended"
-                    else -> "Unknown"
-                }
-            }
-            return "Unknown"
+    inner class LocalBinder : Binder() {
+        fun getService(): EventMonitoringService {
+            // Return this instance of EventMonitoringService so clients can call public methods
+            return this@EventMonitoringService
         }
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
+    override fun onBind(intent: Intent?): IBinder {
+        return LocalBinder()
     }
 
     override fun onCreate() {
@@ -111,13 +67,12 @@ class EventMonitoringService : Service() {
         }
     }
 
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return START_STICKY // Service will be restarted if terminated by the system
     }
 
     private fun startForeground() {
-        val notification = createNotification()
+        val notification = createNotification("Service is Running")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             startForeground(
@@ -130,7 +85,7 @@ class EventMonitoringService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(text: String): Notification {
         createNotificationChannel()
 
         val intent = Intent(this, MainActivity::class.java)
@@ -139,14 +94,26 @@ class EventMonitoringService : Service() {
 
         val smallIcon = R.drawable.ic_notification_icon // Replace with your small icon resource
 
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Event Log Exporter")
-            .setContentText("")
-            .setSmallIcon(smallIcon                                                                                                                                                                                                                                         )
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            return Notification.Builder(this, CHANNEL_ID)
+                .setContentTitle("Event Log Exporter")
+                .setContentText(text)
+                .setOnlyAlertOnce(true)
+                .setSmallIcon(smallIcon)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
 
-        return builder.build()
+        } else {
+            return NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Event Log Exporter")
+                .setContentText(text)
+                .setOnlyAlertOnce(true)
+                .setSmallIcon(smallIcon)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .build()
+            }
     }
 
     private fun createNotificationChannel() {
@@ -161,6 +128,28 @@ class EventMonitoringService : Service() {
             notificationManager.createNotificationChannel(channel)
         }
     }
+
+    // Call this function to update the notification content
+    fun updateNotificationContent(newContentText: String) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // Check if the notification channel exists (for Android O and later)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = notificationManager.getNotificationChannel(CHANNEL_ID)
+
+            // If the channel doesn't exist, recreate it
+            if (channel == null) {
+                createNotificationChannel()
+            }
+        }
+
+        // Create the updated notification within the same channel
+        val updatedNotification = createNotification(newContentText)
+
+        notificationManager.notify(NOTIFICATION_ID, updatedNotification)
+        //Log.i(TAG, "Notification updated with: $newContentText")
+    }
+
 
     override fun onDestroy() {
         super.onDestroy()

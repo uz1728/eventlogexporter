@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
 
-class UploadFileTask() {
+class UploadFileTask {
     companion object {
         val TAG: String = UploadFileTask::class.java.simpleName
         private val LOGGER = Logger.getLogger(UploadFileTask::class.java.name)

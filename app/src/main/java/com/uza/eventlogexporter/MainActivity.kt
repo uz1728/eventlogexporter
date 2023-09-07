@@ -22,8 +22,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var sharedPreferences: SharedPreferences
 
-    private lateinit var eventLogWriter: EventLogWriter  // Declare a property for FileWriter
-
     private val enrollmentCompleted by lazy {
         sharedPreferences.getBoolean("enrollmentCompleted", false)
     }
@@ -32,6 +30,10 @@ class MainActivity : AppCompatActivity() {
         sharedPreferences.getBoolean("receiverRegistered", false)
     }
 
+//    private val eventLogWriter by lazy {
+//        EventLogWriter.getInstance(applicationContext)
+//    }
+
     private val networkChangeListener by lazy {
         NetworkChangeListener.getInstance(applicationContext)
     }
@@ -39,22 +41,7 @@ class MainActivity : AppCompatActivity() {
     private val initializeOnStartupReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (context != null && intent != null && intent.action == Intent.ACTION_BOOT_COMPLETED) {
-                lifecycleScope.launch {
-                    try {
-                        if (enrollmentCompleted) {
-                            networkChangeListener.startListening()
-                            networkChangeListener.logState("Device Boot Completed")
-
-                            if (!isServiceRunning(EventMonitoringService::class.java, context)) {
-                                startEventMonitoringService(TAG, context)
-                            } else {
-                                Log.i(TAG, "EventMonitoringService Already Running")
-                            }
-                        }
-                    } catch (exception: Exception) {
-                        Log.e(TAG, "Exception:", exception)
-                    }
-                }
+                handleBootCompleted(context)
             }
         }
     }
@@ -63,8 +50,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "MainActivity Instance Created")
         setContentView(R.layout.main_layout)
-
-        eventLogWriter = EventLogWriter.getInstance(applicationContext)
 
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
@@ -75,6 +60,34 @@ class MainActivity : AppCompatActivity() {
         if (!enrollmentCompleted) {
             navController.navigate(R.id.enrollmentFragment)
         } else {
+            registerBootCompletedReceiver()
+            val currentDestinationId = navController.currentDestination?.id
+            initializeServices(currentDestinationId)
+        }
+    }
+
+    private fun handleBootCompleted(context: Context) {
+        try {
+        lifecycleScope.launch {
+                if (enrollmentCompleted) {
+                    networkChangeListener.startListening(applicationContext)
+                    networkChangeListener.logState("Device Boot Completed")
+
+                    if (!isServiceRunning(EventMonitoringService::class.java, context)) {
+                        startEventMonitoringService(TAG, context)
+                    } else {
+                        Log.i(TAG, "EventMonitoringService Already Running")
+                    }
+                }
+            }
+        }
+        catch (exception: Exception) {
+            Log.e(TAG, "Exception:", exception)
+        }
+    }
+
+    private fun registerBootCompletedReceiver() {
+        lifecycleScope.launch {
             val intentFilter = IntentFilter().apply {
                 addAction(Intent.ACTION_BOOT_COMPLETED)
             }
@@ -88,19 +101,26 @@ class MainActivity : AppCompatActivity() {
                     Log.i(TAG, "Exception:", exception)
                 }
             }
+        }
+    }
 
-            val currentDestinationId = navController.currentDestination?.id
-            lifecycleScope.launch {
-                if (!isServiceRunning(EventMonitoringService::class.java, this@MainActivity)) {
-                    startEventMonitoringService(TAG, this@MainActivity)
-                }
-                networkChangeListener.startListening()
-
-                if (currentDestinationId != R.id.exportFragment) {
-                    navController.navigate(R.id.action_enrollmentFragment_to_exportFragment)
-                }
+    private fun initializeServices(currentDestinationId: Int?) {
+        lifecycleScope.launch {
+            if (!isServiceRunning(EventMonitoringService::class.java, this@MainActivity)) {
+                startEventMonitoringService(TAG, this@MainActivity)
+            }
+            networkChangeListener.startListening(applicationContext)
+            if (currentDestinationId != R.id.exportFragment) {
+                navigateToExportFragment()
             }
         }
+    }
+
+    private fun navigateToExportFragment() {
+        val navController =
+            (supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment)
+                .navController
+        navController.navigate(R.id.action_enrollmentFragment_to_exportFragment)
     }
 
     override fun onDestroy() {
@@ -108,3 +128,4 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "MainActivity Instance Destroyed")
     }
 }
+

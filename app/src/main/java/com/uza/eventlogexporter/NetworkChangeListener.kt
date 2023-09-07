@@ -1,10 +1,14 @@
 package com.uza.eventlogexporter
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.os.IBinder
 import android.util.Log
 
 class NetworkChangeListener private constructor(context: Context) {
@@ -25,7 +29,11 @@ class NetworkChangeListener private constructor(context: Context) {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
-    private val eventLogWriter = EventLogWriter.getInstance(context)
+    private val eventLogWriter by lazy {
+        EventLogWriter.getInstance()
+    }
+
+    private var eventMonitoringService: EventMonitoringService? = null
 
     private var lastLoggedConnectionType: String? = null
     private var lastLoggedNetworkType: String? = null
@@ -74,10 +82,18 @@ class NetworkChangeListener private constructor(context: Context) {
             "$deviceStatus,$lastLoggedConnectionType,$lastLoggedNetworkType"
         Log.i(TAG, message)
         eventLogWriter.logMessageWithTimestamp(message)
+
+        // Check if the service reference is not null before calling the function
+        eventMonitoringService?.updateNotificationContent(message)
     }
 
-    fun startListening() {
+
+    // Combine the logic for starting to listen and binding to the service
+    fun startListening(context: Context) {
         if (!isListening) {
+            val intent = Intent(context, EventMonitoringService::class.java)
+            context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+
             val networkRequest = NetworkRequest.Builder()
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build()
@@ -89,6 +105,18 @@ class NetworkChangeListener private constructor(context: Context) {
             } catch (e: SecurityException) {
                 Log.e(TAG, "Failed to register network callback: ${e.message}")
             }
+        }
+    }
+
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            if (service is EventMonitoringService.LocalBinder) {
+                eventMonitoringService = service.getService()
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            eventMonitoringService = null
         }
     }
 

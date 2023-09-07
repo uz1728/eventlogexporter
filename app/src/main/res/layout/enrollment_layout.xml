@@ -16,6 +16,7 @@
         android:inputType="text"
         android:textSize="16sp"
         android:textColor="@android:color/black"
+        android:textColorHint="#808080"
         android:gravity="center"
         tools:ignore="LabelFor"
         android:autofillHints="" />

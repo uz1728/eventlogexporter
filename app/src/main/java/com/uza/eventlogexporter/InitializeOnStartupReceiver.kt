@@ -34,7 +34,7 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
                     if (sharedPreferences?.getBoolean("enrollmentCompleted", false) == true) {
                         val networkChangeListener =
                             NetworkChangeListener.getInstance(applicationContext)
-                        networkChangeListener.startListening()
+                        networkChangeListener.startListening(applicationContext)
 
                         val message = "Device Boot Completed"
                         networkChangeListener.logState((message))
