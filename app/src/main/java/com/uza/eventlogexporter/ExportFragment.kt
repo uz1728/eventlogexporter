@@ -20,7 +20,6 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.File
 
-
 class ExportFragment : Fragment() {
 
     companion object {

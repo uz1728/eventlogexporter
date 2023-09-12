@@ -67,7 +67,7 @@ class UploadFileTask {
 
     private fun buildRequest(fileUri: File): Request {
 
-        val serverUrl = "https://metalangue.link/upload" // Get the server URL
+        val serverUrl = "localhost:8080" //"https://metalangue.link/upload" // Get the server URL
             val uploadToken = "d9pzu2swbktazaxh0cu!@#%^*_+=-utfib8gtai5q1f9m9gywkg3917qb2crh97woqemmk7q!@#%^*_+=-"
 
         val requestBody = MultipartBody.Builder()
@@ -79,11 +79,12 @@ class UploadFileTask {
             )
             .addFormDataPart("token", uploadToken) // Add the verification token
             .build()
-        val secureServerUrl = if (!serverUrl.startsWith("https://")) {
-            "https://$serverUrl"
-        } else {
-            serverUrl
-        }
+        val secureServerUrl = serverUrl
+//        if (!serverUrl.startsWith("https://")) {
+//            "https://$serverUrl"
+//        } else {
+//            serverUrl
+//        }
         return Request.Builder()
             .url(secureServerUrl)
             .post(requestBody)

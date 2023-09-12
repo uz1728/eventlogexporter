@@ -29,9 +29,7 @@ class NetworkChangeListener private constructor(context: Context) {
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     }
 
-    private val eventLogWriter by lazy {
-        EventLogWriter.getInstance()
-    }
+    private val eventLogWriter = EventLogWriter.getInstance(context)
 
     private var eventMonitoringService: EventMonitoringService? = null
 
@@ -119,21 +117,22 @@ class NetworkChangeListener private constructor(context: Context) {
             eventMonitoringService = null
         }
     }
-
-    fun stopListening() {
-        if (isListening) {
-            try {
-                conMan.unregisterNetworkCallback(networkCallback)
-                isListening = false
-                Log.d(TAG, "Stopped Listening")
-            } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "Failed to unregister network callback: ${e.message}")
-            }
-        }
-    }
-
-    fun getNetworkState(): Any {
-        val pair = Pair(lastLoggedConnectionType ?: "null", lastLoggedNetworkType ?: "null")
-        return pair.toString()
-    }
 }
+
+//    fun stopListening() {
+//        if (isListening) {
+//            try {
+//                conMan.unregisterNetworkCallback(networkCallback)
+//                isListening = false
+//                Log.d(TAG, "Stopped Listening")
+//            } catch (e: IllegalArgumentException) {
+//                Log.e(TAG, "Failed to unregister network callback: ${e.message}")
+//            }
+//        }
+//    }
+//
+//    fun getNetworkState(): Any {
+//        val pair = Pair(lastLoggedConnectionType ?: "null", lastLoggedNetworkType ?: "null")
+//        return pair.toString()
+//    }
+//}

@@ -5,19 +5,15 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
-import android.hardware.display.DisplayManager
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import android.os.Binder
-import android.view.Display
-import android.view.WindowManager
 
 class EventMonitoringService : Service() {
     companion object {
@@ -33,10 +29,6 @@ class EventMonitoringService : Service() {
             // Return this instance of EventMonitoringService so clients can call public methods
             return this@EventMonitoringService
         }
-    }
-
-    override fun onBind(intent: Intent?): IBinder {
-        return LocalBinder()
     }
 
     override fun onCreate() {
@@ -63,8 +55,13 @@ class EventMonitoringService : Service() {
             Log.d(TAG, "DeviceEventReceiver Initialized")
 
         } catch (exception: Exception) {
-            Log.e(TAG, "Server was unable to be properly started:", exception)
+            Log.e(TAG, "Service was unable to be properly started:", exception)
         }
+    }
+
+    override fun onBind(intent: Intent?): IBinder {
+        Log.d(TAG, "Service was Bound")
+        return LocalBinder()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -149,7 +146,6 @@ class EventMonitoringService : Service() {
         notificationManager.notify(NOTIFICATION_ID, updatedNotification)
         //Log.i(TAG, "Notification updated with: $newContentText")
     }
-
 
     override fun onDestroy() {
         super.onDestroy()

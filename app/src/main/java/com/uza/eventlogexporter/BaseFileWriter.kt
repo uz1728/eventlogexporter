@@ -1,10 +1,7 @@
 package com.uza.eventlogexporter
 
-import android.content.ComponentName
 import android.content.Context
-import android.content.ServiceConnection
 import android.content.SharedPreferences
-import android.os.IBinder
 import android.util.Log
 import java.io.File
 import java.io.IOException
@@ -13,6 +10,7 @@ import java.util.Date
 import java.util.Locale
 
 abstract class BaseFileWriter(
+    private val context: Context,
     private val fileName: String,
     private var header: String
 ) {
@@ -27,33 +25,20 @@ abstract class BaseFileWriter(
             return sdf.format(date)
         }
     }
-    private var eventMonitoringService: EventMonitoringService? = null
-    private val context = eventMonitoringService!!.applicationContext
+
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     private val filePathPref = "${fileName}FilePath"
     private val numberOfLinesPref = "${fileName}NumberOfLines"
-
-    private val serviceConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            if (service is EventMonitoringService.LocalBinder) {
-                eventMonitoringService = service.getService()
-            }
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            eventMonitoringService = null
-        }
-    }
 
     protected open fun writeToFileWithTimestamp(message: String): String? {
         val timestamp = System.currentTimeMillis()
         val formattedTimestamp = formatTimestamp(timestamp)
 
-        var participantId = sharedPreferences.getString("participantId", null)
+        var participantId = sharedPreferences.getString("participantId", ID_NOT_SET)
 
         if (participantId.isNullOrEmpty()) {
             participantId = ID_NOT_SET
-            sharedPreferences.edit().putString("participantId", participantId).commit()
+            sharedPreferences.edit().putString("participantId", participantId).apply()
             Log.e(TAG, "participantId is not set")
         }
 
@@ -80,7 +65,7 @@ abstract class BaseFileWriter(
         sharedPreferences.edit().putInt(numberOfLinesPref, lineCount).apply()
         Log.d(TAG, "$newFileName Length: $lineCount")
 
-        sharedPreferences.edit().putString(filePathPref, newFile.absolutePath).commit()
+        sharedPreferences.edit().putString(filePathPref, newFile.absolutePath).apply()
 
         return fullMessage
     }
@@ -95,11 +80,11 @@ abstract class BaseFileWriter(
     }
 
     private fun createANewFile(): File {
-        var participantId = sharedPreferences.getString("participantId", null)
+        var participantId = sharedPreferences.getString("participantId", ID_NOT_SET)
 
         if (participantId.isNullOrEmpty()) {
             participantId = ID_NOT_SET
-            sharedPreferences.edit().putString("participantId", participantId).commit()
+            sharedPreferences.edit().putString("participantId", participantId).apply()
             Log.e(TAG, "participantId is not set")
         }
 
@@ -108,8 +93,8 @@ abstract class BaseFileWriter(
 
         if (!newFile.exists()) {
             try {
-                newFile.createNewFile() // Create the new file here
-                sharedPreferences.edit().putString(filePathPref, newFile.absolutePath).commit()
+                newFile.createNewFile()
+                sharedPreferences.edit().putString(filePathPref, newFile.absolutePath).apply()
                 if (!header.endsWith("\n")) {
                     header = "$header\n"
                 }

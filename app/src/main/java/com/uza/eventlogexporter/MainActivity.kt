@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.NavHostFragment
@@ -57,6 +59,8 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
 
+        onBackPressedDispatcher.addCallback(this, backPressedCallback)
+
         if (!enrollmentCompleted) {
             navController.navigate(R.id.enrollmentFragment)
         } else {
@@ -64,6 +68,7 @@ class MainActivity : AppCompatActivity() {
             val currentDestinationId = navController.currentDestination?.id
             initializeServices(currentDestinationId)
         }
+
     }
 
     private fun handleBootCompleted(context: Context) {
@@ -114,6 +119,29 @@ class MainActivity : AppCompatActivity() {
                 navigateToExportFragment()
             }
         }
+    }
+
+    private val backPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            isEnabled = false // Disable this callback
+            handleCustomBackNavigation()
+            isEnabled = true // Re-enable this callback
+            }
+        }
+
+    private fun handleCustomBackNavigation() {
+        val alertDialogBuilder = AlertDialog.Builder(this)
+        alertDialogBuilder.setTitle("Exit Confirmation")
+        alertDialogBuilder.setMessage("Are you sure you want to exit the app?")
+        alertDialogBuilder.setPositiveButton("Yes") { _, _ ->
+            // Perform any cleanup or exit the app as needed
+            finish()
+        }
+        alertDialogBuilder.setNegativeButton("No") { _, _ ->
+            // Do nothing or handle other actions
+        }
+        val alertDialog = alertDialogBuilder.create()
+        alertDialog.show()
     }
 
     private fun navigateToExportFragment() {

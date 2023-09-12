@@ -24,27 +24,33 @@ class DeviceEventReceiver private constructor() : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
-        if (context == null || intent == null) {
-            Log.e(EventMonitoringService.TAG, "Unable to receive events due to context and/or intent being null")
-            return
+        try {
+
+            if (context == null || intent == null) {
+                Log.e(EventMonitoringService.TAG, "Unable to receive events due to context and/or intent being null")
+                return
+            }
+
+            val applicationContext = context.applicationContext
+            val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
+            networkChangeListener.startListening(applicationContext)
+
+            val action = intent.action
+            val displayState = getDisplayState(applicationContext)
+
+            val logMessage = when (action) {
+                Intent.ACTION_USER_PRESENT -> "User Unlocked Device"
+                Intent.ACTION_SHUTDOWN -> "Device Shutting Down"
+                Intent.ACTION_SCREEN_ON -> "Screen Interactive"
+                Intent.ACTION_SCREEN_OFF -> "Screen Non-Interactive"
+                else -> "Unknown Action"
+            }
+
+            networkChangeListener.logState("$logMessage: $displayState")
         }
-
-        val applicationContext = context.applicationContext
-        val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
-        networkChangeListener.startListening(applicationContext)
-
-        val action = intent.action
-        val displayState = getDisplayState(applicationContext)
-
-        val logMessage = when (action) {
-            Intent.ACTION_USER_PRESENT -> "User Unlocked Device"
-            Intent.ACTION_SHUTDOWN -> "Device Shutting Down"
-            Intent.ACTION_SCREEN_ON -> "Screen Interactive"
-            Intent.ACTION_SCREEN_OFF -> "Screen Non-Interactive"
-            else -> "Unknown Action: $action"
+        catch (e: Exception) {
+        Log.e(EventMonitoringService.TAG, "Error in onReceive: ${e.message}", e)
         }
-
-        networkChangeListener.logState("$logMessage: $displayState")
     }
 
     private fun getDisplayState(context: Context): String {
