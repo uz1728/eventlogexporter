@@ -61,7 +61,6 @@
         <receiver
             android:name=".InitializeOnStartupReceiver"
             android:enabled="true"
-            android:process=":remote2"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -72,7 +71,6 @@
         <receiver
             android:name=".DeviceEventReceiver"
             android:enabled="true"
-            android:process=":remote3"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.USER_PRESENT" />

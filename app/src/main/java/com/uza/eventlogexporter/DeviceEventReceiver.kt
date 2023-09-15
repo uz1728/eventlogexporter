@@ -31,12 +31,10 @@ class DeviceEventReceiver private constructor() : BroadcastReceiver() {
                 return
             }
 
-            val applicationContext = context.applicationContext
-            val networkChangeListener = NetworkChangeListener.getInstance(applicationContext)
-            networkChangeListener.startListening(applicationContext)
+            val networkChangeListener = NetworkChangeListener.getInstance(context.applicationContext)
 
             val action = intent.action
-            val displayState = getDisplayState(applicationContext)
+            val displayState = getDisplayState(context.applicationContext)
 
             val logMessage = when (action) {
                 Intent.ACTION_USER_PRESENT -> "User Unlocked Device"

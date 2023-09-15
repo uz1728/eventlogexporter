@@ -80,6 +80,9 @@ class EventMonitoringService : Service() {
         } else {
             startForeground(NOTIFICATION_ID, notification)
         }
+        val networkChangeListener =
+            NetworkChangeListener.getInstance(applicationContext)
+        networkChangeListener.startListening(applicationContext)
     }
 
     private fun createNotification(text: String): Notification {

@@ -1,6 +1,5 @@
 package com.uza.eventlogexporter
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -32,28 +31,14 @@ class MainActivity : AppCompatActivity() {
         sharedPreferences.getBoolean("receiverRegistered", false)
     }
 
-//    private val eventLogWriter by lazy {
-//        EventLogWriter.getInstance(applicationContext)
-//    }
-
-    private val networkChangeListener by lazy {
-        NetworkChangeListener.getInstance(applicationContext)
-    }
-
-    private val initializeOnStartupReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (context != null && intent != null && intent.action == Intent.ACTION_BOOT_COMPLETED) {
-                handleBootCompleted(context)
-            }
-        }
-    }
+    private val initializeOnStartupReceiver = InitializeOnStartupReceiver.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "MainActivity Instance Created")
         setContentView(R.layout.main_layout)
 
-        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        sharedPreferences = applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
@@ -64,34 +49,16 @@ class MainActivity : AppCompatActivity() {
         if (!enrollmentCompleted) {
             navController.navigate(R.id.enrollmentFragment)
         } else {
-            registerBootCompletedReceiver()
+            registerInitializeOnStartupReceiver()
             val currentDestinationId = navController.currentDestination?.id
             initializeServices(currentDestinationId)
-        }
-
-    }
-
-    private fun handleBootCompleted(context: Context) {
-        try {
-        lifecycleScope.launch {
-                if (enrollmentCompleted) {
-                    networkChangeListener.startListening(applicationContext)
-                    networkChangeListener.logState("Device Boot Completed")
-
-                    if (!isServiceRunning(EventMonitoringService::class.java, context)) {
-                        startEventMonitoringService(TAG, context)
-                    } else {
-                        Log.i(TAG, "EventMonitoringService Already Running")
-                    }
-                }
+            if (currentDestinationId != R.id.exportFragment) {
+                navigateToExportFragment()
             }
         }
-        catch (exception: Exception) {
-            Log.e(TAG, "Exception:", exception)
-        }
     }
 
-    private fun registerBootCompletedReceiver() {
+    private fun registerInitializeOnStartupReceiver() {
         lifecycleScope.launch {
             val intentFilter = IntentFilter().apply {
                 addAction(Intent.ACTION_BOOT_COMPLETED)
@@ -113,10 +80,6 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             if (!isServiceRunning(EventMonitoringService::class.java, this@MainActivity)) {
                 startEventMonitoringService(TAG, this@MainActivity)
-            }
-            networkChangeListener.startListening(applicationContext)
-            if (currentDestinationId != R.id.exportFragment) {
-                navigateToExportFragment()
             }
         }
     }

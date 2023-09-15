@@ -26,7 +26,7 @@ abstract class BaseFileWriter(
         }
     }
 
-    private val sharedPreferences: SharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+    private val sharedPreferences: SharedPreferences = context.applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     private val filePathPref = "${fileName}FilePath"
     private val numberOfLinesPref = "${fileName}NumberOfLines"
 

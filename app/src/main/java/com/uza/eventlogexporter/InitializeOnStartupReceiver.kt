@@ -12,6 +12,17 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
 
     companion object {
         val TAG: String = InitializeOnStartupReceiver::class.java.simpleName
+
+        private var instance: InitializeOnStartupReceiver? = null
+
+        @JvmStatic
+        fun getInstance(): InitializeOnStartupReceiver {
+            return instance ?: synchronized(this) {
+                instance ?: InitializeOnStartupReceiver().also {
+                    instance = it
+                }
+            }
+        }
     }
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -20,7 +31,6 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
             return
         }
 
-        val applicationContext = context.applicationContext
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED -> {
                 // Capture the boot time
@@ -29,21 +39,20 @@ class InitializeOnStartupReceiver : BroadcastReceiver() {
                 // Calculate the startup time
                 try {
                     val sharedPreferences =
-                        applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+                        context.applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
 
                     if (sharedPreferences?.getBoolean("enrollmentCompleted", false) == true) {
-                        val networkChangeListener =
-                            NetworkChangeListener.getInstance(applicationContext)
-                        networkChangeListener.startListening(applicationContext)
-
-                        val message = "Device Boot Completed"
-                        networkChangeListener.logState((message))
 
                         if (!Utils.isServiceRunning(EventMonitoringService::class.java, context)) {
                             startEventMonitoringService(TAG, context)
                         } else {
                             Log.i(MainActivity.TAG, "EventMonitoringService Already Running")
                         }
+                        val networkChangeListener =
+                            NetworkChangeListener.getInstance(context.applicationContext)
+
+                        val message = "Device Boot Completed"
+                        networkChangeListener.logState((message))
                     }
                 } catch (exception: Exception) {
                     Log.e(TAG, "Exception:", exception)

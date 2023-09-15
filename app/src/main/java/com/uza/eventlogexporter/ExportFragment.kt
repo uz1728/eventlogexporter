@@ -40,7 +40,7 @@ class ExportFragment : Fragment() {
         // Retrieve the number of lines from SharedPreferences and set it to the TextView
         val sharedPreferences = requireContext().applicationContext.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         val numberOfLines = sharedPreferences.getInt("event_logNumberOfLines", 0)
-        lineCountTextView.text = getString(R.string.number_of_events, numberOfLines)
+        lineCountTextView.text = getString(R.string.number_of_events, numberOfLines-1)
 
         val permission = Manifest.permission.ACCESS_NETWORK_STATE
         if (ContextCompat.checkSelfPermission(
